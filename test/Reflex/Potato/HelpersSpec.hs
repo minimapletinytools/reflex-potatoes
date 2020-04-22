@@ -8,11 +8,10 @@ where
 import           Relude
 
 import           Test.Hspec
-import           Test.Hspec.Contrib.HUnit       ( fromHUnitTest )
+import           Test.Hspec.Contrib.HUnit (fromHUnitTest)
 import           Test.HUnit
 
-import qualified Data.List                     as L
-                                                ( last )
+import qualified Data.List                as L (last)
 
 import           Reflex
 import           Reflex.Potato.Helpers
@@ -38,34 +37,34 @@ test_sequenceEvents = TestLabel "sequenceEvents" $ TestCase $ do
   v <- liftIO run
   join v @?= [Just 0, Just 1]
 
-repeatEventAndCollectOutput_network
+stepEventsAndCollectOutput_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
   => (Event t [Int] -> PerformEventT t m (Event t [Int]))
-repeatEventAndCollectOutput_network ev = mdo
-  (repeated, collected) <- repeatEventAndCollectOutput ev repeated
+stepEventsAndCollectOutput_network ev = mdo
+  (repeated, collected) <- stepEventsAndCollectOutput ev repeated
   return collected
 
-test_repeatEventAndCollectOutput :: Test
-test_repeatEventAndCollectOutput =
-  TestLabel "repeatEventAndCollectOutput" $ TestCase $ do
+test_stepEventsAndCollectOutput :: Test
+test_stepEventsAndCollectOutput =
+  TestLabel "stepEventsAndCollectOutput" $ TestCase $ do
     let bs = [[0], [], [1 .. 5], [], [], [1, 2], [1 .. 10], []] :: [[Int]]
         run :: IO [[Maybe [Int]]]
-        run = runAppSimple repeatEventAndCollectOutput_network bs
+        run = runAppSimple stepEventsAndCollectOutput_network bs
     v <- liftIO run
     fmap L.last v @?= fmap Just bs
 
-repeatEvent_network
+stepEvents_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
   => (Event t [Int] -> PerformEventT t m (Event t Int))
-repeatEvent_network = repeatEvent
+stepEvents_network = stepEvents
 
-test_repeatEvent :: Test
-test_repeatEvent = TestLabel "repeatEvent" $ TestCase $ do
+test_stepEvents :: Test
+test_stepEvents = TestLabel "stepEvents" $ TestCase $ do
   let bs = [[1 .. 10], [0], [], [1 .. 5], [], [], [1, 2]] :: [[Int]]
       run :: IO [[Maybe Int]]
-      run = runAppSimple repeatEvent_network bs
+      run = runAppSimple stepEvents_network bs
   v <- liftIO run
   --print v
   return ()
@@ -74,6 +73,6 @@ test_repeatEvent = TestLabel "repeatEvent" $ TestCase $ do
 spec :: Spec
 spec = do
   describe "Potato" $ do
-    fromHUnitTest test_repeatEvent
-    fromHUnitTest test_repeatEventAndCollectOutput
+    fromHUnitTest test_stepEvents
+    fromHUnitTest test_stepEventsAndCollectOutput
     fromHUnitTest test_sequenceEvents

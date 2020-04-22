@@ -17,8 +17,9 @@ module Reflex.Potato.Helpers
   , foldDynMerge
   , fanDSum
   , sequenceEvents
-  , repeatEvent
-  , repeatEventAndCollectOutput
+
+  , stepEvents
+  , stepEventsAndCollectOutput
   )
 where
 
@@ -28,8 +29,8 @@ import           Reflex
 
 import           Control.Monad.Fix
 
-import qualified Data.Dependent.Map            as DM
-import qualified Data.Dependent.Sum            as DS
+import qualified Data.Dependent.Map as DM
+import qualified Data.Dependent.Sum as DS
 import           Data.These
 
 
@@ -91,12 +92,11 @@ selectRest []       = Nothing
 selectRest (_ : []) = Nothing
 selectRest (_ : xs) = Just xs
 
--- TODO this seems to cause leaks, test it
--- | if both events fire at the same time, this functions returns an event with
--- the second event's results that fires one frame after the first event fires
+-- | This takes two possibly simultaneous events to and sequences them to fire on different frames.
+-- If both events fire at the same time, this functions returns an event with the second event's results that fires one frame after the first event fires.
 sequenceEvents
   :: forall t m a b
-   . (Reflex t, Adjustable t m, MonadFix m)
+   . (Adjustable t m, MonadFix m)
   => Event t a
   -> Event t b
   -> m (Event t b)
@@ -106,7 +106,7 @@ sequenceEvents ev1 ev2 = mdo
         let
           -- filters for when BOTH ev1 and ev2 triggered in the previous frame
             fmapfn = \case
-              These v1 v2 -> Just v2
+              These _ v2 -> Just v2
               _           -> Nothing
             delayed = fmapMaybe fmapfn redo
         -- if ev1 does not trigger, delay does not trigger and this gives ev2
@@ -120,18 +120,15 @@ sequenceEvents ev1 ev2 = mdo
     (alignEventWithMaybe (Just . return) ev1 ev2)
   return ev2Delayed
 
--- TODO rename
--- TODO prob implement with repeatEventAndCollectOutput
--- lazy evaluation should mean it's no less efficient but IDK
--- | triggers output event once for each input event
--- each output event runs in a different consecutive frame
--- if these events trigger the input event, they get appended to the end of events to be triggered
-repeatEvent
+-- | Creates an output event that fires once for each input in the list.
+-- Each output event runs in a different consecutive frame.
+-- If an output event triggers the input event, they get appended to the end of the list of events to be triggered
+stepEvents
   :: forall t m a
-   . (Reflex t, Adjustable t m, MonadFix m)
+   . (Adjustable t m, MonadFix m)
   => Event t [a]
   -> m (Event t a)
-repeatEvent evin = mdo
+stepEvents evin = mdo
   let
     -- if input event fires in subsequent ticks, append to end
     -- obviously, be mindful of infinite loops
@@ -147,14 +144,14 @@ repeatEvent evin = mdo
   (_, rev) <- runWithReplace (return ()) (return <$> rest)
   return next
 
--- collected result event triggers simultaneously with last event in list to repeat
-repeatEventAndCollectOutput
+-- | Same as stepEvents but collects results for each event firing.
+stepEventsAndCollectOutput
   :: forall t m a b
    . (Adjustable t m, MonadHold t m, MonadFix m)
   => Event t [a] -- ^ event to repeat
   -> Event t b -- ^ event to collect results from, only collects if event fires
   -> m (Event t a, Event t [b]) -- ^ (repeated event, collected results once event is done repeating)
-repeatEventAndCollectOutput evin collectEv = mdo
+stepEventsAndCollectOutput evin collectEv = mdo
   let
     -- if input event fires in subsequent ticks, append to end
     -- obviously, be mindful of infinite loops

@@ -16,8 +16,9 @@ module Reflex.Potato.Helpers
   , foldDynMergeWith
   , foldDynMerge
   , fanDSum
-  , sequenceEvents
 
+  , delayEvent
+  , sequenceEvents
   , stepEvents
   , stepEventsAndCollectOutput
   )
@@ -91,6 +92,17 @@ selectRest :: [a] -> Maybe [a]
 selectRest []       = Nothing
 selectRest (_ : []) = Nothing
 selectRest (_ : xs) = Just xs
+
+
+-- | delays an event by 1 tick
+delayEvent
+  :: forall t m a
+   . (Adjustable t m)
+  => Event t a
+  -> m (Event t a)
+delayEvent ev = do
+  (_, evDelayed) <- runWithReplace (return ()) (fmap return ev)
+  return evDelayed
 
 -- | This takes two possibly simultaneous events to and sequences them to fire on different frames.
 -- If both events fire at the same time, this functions returns an event with the second event's results that fires one frame after the first event fires.

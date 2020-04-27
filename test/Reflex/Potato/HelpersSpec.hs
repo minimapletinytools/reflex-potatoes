@@ -18,6 +18,24 @@ import           Reflex.Potato.Helpers
 
 import           Reflex.Test.Host
 
+delayEvent_network
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t Int -> PerformEventT t m (Event t Int))
+delayEvent_network ev = mdo
+  delayedEv <- delayEvent ev
+  return $ leftmostwarn "delayEvent" [ev, delayedEv]
+
+test_delayEvent :: Test
+test_delayEvent = TestLabel "delayEvent" $ TestCase $ do
+  let
+    n = 100
+    bs = [0..n] :: [Int]
+    run :: IO [[Maybe Int]]
+    run = runAppSimple delayEvent_network bs
+  v <- liftIO run
+  join v @?= [Just (x `div` 2) | x <- [0..(n*2+1)]]
+
 
 sequenceEvents_network
   :: forall t m
@@ -36,6 +54,7 @@ test_sequenceEvents = TestLabel "sequenceEvents" $ TestCase $ do
       run = runAppSimple sequenceEvents_network bs
   v <- liftIO run
   join v @?= [Just 0, Just 1]
+
 
 stepEventsAndCollectOutput_network
   :: forall t m
@@ -76,3 +95,4 @@ spec = do
     fromHUnitTest test_stepEvents
     fromHUnitTest test_stepEventsAndCollectOutput
     fromHUnitTest test_sequenceEvents
+    fromHUnitTest test_delayEvent

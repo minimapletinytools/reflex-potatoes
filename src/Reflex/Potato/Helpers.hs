@@ -3,6 +3,8 @@
 {-# LANGUAGE RecursiveDo #-}
 
 
+
+
 module Reflex.Potato.Helpers
   (
   -- other helpers
@@ -11,7 +13,9 @@ module Reflex.Potato.Helpers
 
   -- reflex helpers
   , assertEvent
+  , assertEventWith
   , fmapMaybeWarn
+  , fmapMaybeWarnWith
   , traceEventSimple
   , leftmostwarn
   , alignEitherWarn
@@ -30,25 +34,40 @@ import           Relude
 
 import           Reflex
 
+import           Control.Exception.Assert
 import           Control.Monad.Fix
 
-import qualified Data.Dependent.Map as DM
-import qualified Data.Dependent.Sum as DS
-import qualified Data.Text          as T
+import qualified Data.Dependent.Map       as DM
+import qualified Data.Dependent.Sum       as DS
+import qualified Data.Text                as T
 import           Data.These
 
 
 dsum_to_dmap :: DM.GCompare k => DS.DSum k f -> DM.DMap k f
 dsum_to_dmap ds = DM.fromList [ds]
 
-assertEvent :: (Reflex t)
+-- | assert that a predicate is true each time the event triggers
+-- internall calls assert, which can be disabled via compiler options
+-- enable explicitly with {-# OPTIONS_GHC -fno-ignore-asserts #-}
+assertEvent :: (Reflex t, Show a)
   => String -- ^ assert message
   -> (a -> Bool) -- ^ predicate to check
   -> Event t a
   -> Event t a
-assertEvent s p = fmap (\x -> if not (p x) then error (T.pack s) else x)
+assertEvent s p = fmap (\x -> byPred assert s p x x)
 
-fmapMaybeWarn :: (Reflex t)
+-- | assert that a predicate is true each time the event triggers
+-- internall calls assert, which can be disabled via compiler options
+-- enable explicitly with {-# OPTIONS_GHC -fno-ignore-asserts #-}
+assertEventWith :: (Reflex t)
+  => (a -> String) -- ^ assert message
+  -> (a -> Bool) -- ^ predicate to check
+  -> Event t a
+  -> Event t a
+assertEventWith sf p = fmap (\x -> byPred assert (sf x) id (p x) x)
+
+-- | same as fmapMaybe except outputs a warning if predicate fails
+fmapMaybeWarn :: (Reflex t, Show a)
   => String -- ^ warning message
   -> (a -> Bool) -- ^ predicate to check
   -> Event t a
@@ -57,7 +76,20 @@ fmapMaybeWarn s p ev = r where
   ev' = fmap (\x -> (p x, x)) ev
   good = fmapMaybe (\(a,x) -> if a then Just x else Nothing) ev'
   bad =  fmapMaybe (\(a,x) -> if not a then Just x else Nothing) ev'
-  r = leftmost [good, fmapMaybe (const Nothing) $ traceEventWith (const s) bad]
+  r = leftmost [good, fmapMaybe (const Nothing) $ traceEvent s bad]
+
+-- | same as fmapMaybe except outputs a warning if predicate fails
+fmapMaybeWarnWith :: (Reflex t)
+  => (a -> String) -- ^ warning message
+  -> (a -> Bool) -- ^ predicate to check
+  -> Event t a
+  -> Event t a
+fmapMaybeWarnWith sf p ev = r where
+  ev' = fmap (\x -> (p x, x)) ev
+  good = fmapMaybe (\(a,x) -> if a then Just x else Nothing) ev'
+  bad =  fmapMaybe (\(a,x) -> if not a then Just x else Nothing) ev'
+  r = leftmost [good, fmapMaybe (const Nothing) $ traceEventWith sf bad]
+
 
 
 traceEventSimple :: (Reflex t) => String -> Event t a -> Event t a

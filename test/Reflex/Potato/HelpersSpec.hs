@@ -23,19 +23,33 @@ warning_network
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
   => (Event t ()) -> PerformEventT t m (Event t ())
 warning_network ev = do
-  -- ensure leftmostwarn gives a warning
+
   let
+    -- ensure leftmostwarn gives a warning
     ev1 = leftmostwarn "expected" [ev, ev]
-  -- ensure fmapMaybeWarn gives a warning
+
+    -- ensure fmapMaybeWarn/With gives a warning
     ev2 = fmapMaybeWarn "expected" (const False) ev
     ev2Failed = assertEvent "must not happen" (const False) ev2
-  -- ensure fmapMaybeWarn does not give a warning
-    ev3 = fmapMaybeWarn "expected" (const True) ev
-  -- ensure assertEvent gives error (uncomment to test)
-    --ev4 = assertEvent "must crash" (const False) ev
-    ev4 = never
+    ev3 = fmapMaybeWarnWith (const "expected") (const False) ev
+    ev3Failed = assertEvent "must not happen" (const False) ev2
+
+    -- ensure fmapMaybeWarn/With does not give a warning
+    ev4 = fmapMaybeWarn "expected" (const True) ev
+    ev5 = fmapMaybeWarnWith (const "expected") (const True) ev
+
+    -- ensure assertEvent/With gives no error
+    ev6 = assertEventWith (const "must not happen") (const True) ev
+    ev7 = assertEvent "must not happen" (const True) ev
+
+    -- ensure assertEvent/With gives error (uncomment to test)
+    --ev8 = assertEventWith (const "must crash") (const False) ev
+    --ev9 = assertEvent "must crash" (const False) ev
+    ev8 = never
+    ev9 = never
+
   -- force all events by collecting them
-  return $ leftmost [ev1, ev2, ev2Failed, ev3, ev4]
+  return $ leftmost [ev1, ev2, ev2Failed, ev3, ev3Failed, ev4, ev5, ev6, ev7, ev8, ev9]
 
 test_warning :: Test
 test_warning = TestLabel "delayEvent" $ TestCase $ do

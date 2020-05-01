@@ -30,22 +30,23 @@ module Reflex.Potato.Helpers
   )
 where
 
-import           Relude
+import           Prelude            (error)
+import           Relude             hiding (error)
 
 import           Reflex
 
-import           Control.Exception.Assert
 import           Control.Monad.Fix
 
-import qualified Data.Dependent.Map       as DM
-import qualified Data.Dependent.Sum       as DS
-import qualified Data.Text                as T
+import qualified Data.Dependent.Map as DM
+import qualified Data.Dependent.Sum as DS
 import           Data.These
 
 
 dsum_to_dmap :: DM.GCompare k => DS.DSum k f -> DM.DMap k f
 dsum_to_dmap ds = DM.fromList [ds]
 
+
+{- TODO can't get -fno-ignore-asserts to work
 -- | assert that a predicate is true each time the event triggers
 -- internall calls assert, which can be disabled via compiler options
 -- enable explicitly with {-# OPTIONS_GHC -fno-ignore-asserts #-}
@@ -65,6 +66,23 @@ assertEventWith :: (Reflex t)
   -> Event t a
   -> Event t a
 assertEventWith sf p = fmap (\x -> byPred assert (sf x) id (p x) x)
+-}
+
+-- | assert that a predicate is true each time the event triggers
+assertEvent :: (Reflex t, Show a)
+  => String -- ^ assert message
+  -> (a -> Bool) -- ^ predicate to check
+  -> Event t a
+  -> Event t a
+assertEvent s p = fmap (\x -> if not (p x) then error $ s <> " " <> show x else x)
+
+-- | assert that a predicate is true each time the event triggers
+assertEventWith :: (Reflex t)
+  => (a -> String) -- ^ assert message
+  -> (a -> Bool) -- ^ predicate to check
+  -> Event t a
+  -> Event t a
+assertEventWith sf p = fmap (\x -> if not (p x) then error $ sf x else x)
 
 -- | same as fmapMaybe except outputs a warning if predicate fails
 fmapMaybeWarn :: (Reflex t, Show a)

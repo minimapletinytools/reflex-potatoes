@@ -27,6 +27,7 @@ module Reflex.Potato.Helpers
   , sequenceEvents
   , stepEvents
   , stepEventsAndCollectOutput
+  , stepEventsAndSequenceCollectOutput
   )
 where
 
@@ -264,6 +265,52 @@ stepEventsAndCollectOutput evin collectEv = mdo
     foldfn
     []
     (alignEventWithMaybe Just (tag (current resetState) evin') collectEv)
+
+  resetState <- foldDyn
+    const
+    True
+    (leftmost [const True <$> stop, const False <$> evin'])
+
+  (_, rev) <- runWithReplace (return ()) (return <$> rest)
+  return (next, collected)
+
+-- | Same as stepEventsAndCollectOutput but the collected event fires one frame
+-- AFTER the last input event fires
+stepEventsAndSequenceCollectOutput
+  :: forall t m a b
+   . (Adjustable t m, MonadHold t m, MonadFix m)
+  => Event t [a] -- ^ event to step
+  -> Event t b -- ^ event to collect results from, only collects if event fires
+  -> m (Event t a, Event t [b]) -- ^ (repeated event, collected results once event is done repeating)
+stepEventsAndSequenceCollectOutput evin collectEv = mdo
+  let
+    -- if input event fires in subsequent ticks, append to end
+    -- obviously, be mindful of infinite loops
+    evin' :: Event t [a]
+    evin' = mergeWith (\rev' ev' -> rev' <> ev') [rev, evin]
+    next  = fmapMaybe selectNext evin'
+    rest  = fmapMaybe selectRest evin'
+    -- nothing left, this means we fired the last event
+    stop  = fmapMaybe
+      (\x -> if isNothing (selectRest x) then Just () else Nothing)
+      evin'
+    collected = tag (current (reverse <$> collector)) stop
+
+    -- collect events in reverse order
+    -- reset when given the signal
+    foldfn :: These Bool b -> [b] -> [b]
+    foldfn (This True    ) _  = []
+    foldfn (That b       ) bs = b : bs
+    foldfn (These True  b) _  = [b]
+    foldfn (These False b) bs = b : bs
+    foldfn _               bs = bs
+
+  -- we use the trick 'tag (current resetState) evin''
+  -- which causes it to use resetState from previous iterations.
+  collector <- foldDyn
+    foldfn
+    []
+    (alignEventWithMaybe Just (updated resetState) collectEv)
 
   resetState <- foldDyn
     const

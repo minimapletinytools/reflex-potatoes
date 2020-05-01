@@ -101,6 +101,26 @@ test_sequenceEvents = TestLabel "sequenceEvents" $ TestCase $ do
   join v @?= [Just 0, Just 1]
 
 
+
+stepEventsAndSequenceCollectOutput_network
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t [Int] -> PerformEventT t m (Event t [Int]))
+stepEventsAndSequenceCollectOutput_network ev = mdo
+  (repeated, collected) <- stepEventsAndCollectOutput ev repeated
+  return collected
+
+test_stepEventsAndSequenceCollectOutput :: Test
+test_stepEventsAndSequenceCollectOutput =
+  TestLabel "stepEventsAndSequenceCollectOutput" $ TestCase $ do
+    let bs = [[0], [], [1 .. 5], [], [], [1, 2], [1 .. 10], []] :: [[Int]]
+        run :: IO [[Maybe [Int]]]
+        run = runAppSimple stepEventsAndSequenceCollectOutput_network bs
+    v <- liftIO run
+    fmap L.last v @?= fmap Just bs
+
+
+
 stepEventsAndCollectOutput_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
@@ -140,5 +160,6 @@ spec = do
     fromHUnitTest test_warning
     fromHUnitTest test_stepEvents
     fromHUnitTest test_stepEventsAndCollectOutput
+    fromHUnitTest test_stepEventsAndSequenceCollectOutput
     fromHUnitTest test_sequenceEvents
     fromHUnitTest test_delayEvent

@@ -160,10 +160,16 @@ fanDSum ds = fan $ DM.fromAscList . (: []) <$> ds
 selectNext :: [a] -> Maybe a
 selectNext []      = Nothing
 selectNext (x : _) = Just x
+
 selectRest :: [a] -> Maybe [a]
 selectRest []       = Nothing
-selectRest (_ : []) = Nothing
 selectRest (_ : xs) = Just xs
+
+selectRestEarlyExit :: [a] -> Maybe [a]
+selectRestEarlyExit []       = Nothing
+selectRestEarlyExit (_ : []) = Nothing
+selectRestEarlyExit (_ : xs) = Just xs
+
 
 
 -- | delays an event by 1 tick
@@ -219,7 +225,7 @@ stepEvents evin = mdo
       evin' :: Event t [a]
       evin' = mergeWith (\rev' ev' -> rev' <> ev') [rev, evin]
       next  = fmapMaybe selectNext evin'
-      rest  = fmapMaybe selectRest evin'
+      rest  = fmapMaybe selectRestEarlyExit evin'
 
   -- TODO this implementation is better but I can't figure out how to properly wrap request and response types
   --rev <- requestingIdentity (Identity <$> rest)
@@ -229,10 +235,11 @@ stepEvents evin = mdo
   return next
 
 -- | Same as stepEvents but collects results for each event firing.
+-- the collected event fires one frame AFTER the last input event fires
 stepEventsAndCollectOutput
   :: forall t m a b
    . (Adjustable t m, MonadHold t m, MonadFix m)
-  => Event t [a] -- ^ event to repeat
+  => Event t [a] -- ^ event to step
   -> Event t b -- ^ event to collect results from, only collects if event fires
   -> m (Event t a, Event t [b]) -- ^ (repeated event, collected results once event is done repeating)
 stepEventsAndCollectOutput evin collectEv = mdo
@@ -247,7 +254,7 @@ stepEventsAndCollectOutput evin collectEv = mdo
     stop  = fmapMaybe
       (\x -> if isNothing (selectRest x) then Just () else Nothing)
       evin'
-    collected = tagPromptlyDyn (reverse <$> collector) stop
+    collected = tag (current (reverse <$> collector)) stop
 
     -- collect events in reverse order
     -- reset when given the signal
@@ -263,7 +270,7 @@ stepEventsAndCollectOutput evin collectEv = mdo
   collector <- foldDyn
     foldfn
     []
-    (alignEventWithMaybe Just (tag (current resetState) evin') collectEv)
+    (alignEventWithMaybe Just (updated resetState) collectEv)
 
   resetState <- foldDyn
     const

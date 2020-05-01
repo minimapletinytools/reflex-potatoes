@@ -18,6 +18,37 @@ import           Reflex.Potato.Helpers
 
 import           Reflex.Test.Host
 
+warning_network
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t ()) -> PerformEventT t m (Event t ())
+warning_network ev = do
+  -- ensure leftmostwarn gives a warning
+  let
+    ev1 = leftmostwarn "expected" [ev, ev]
+  -- ensure fmapMaybeWarn gives a warning
+    ev2 = fmapMaybeWarn "expected" (const False) ev
+    ev2Failed = assertEvent "must not happen" (const False) ev2
+  -- ensure fmapMaybeWarn does not give a warning
+    ev3 = fmapMaybeWarn "expected" (const True) ev
+  -- ensure assertEvent gives error (uncomment to test)
+    --ev4 = assertEvent "must crash" (const False) ev
+    ev4 = never
+  -- force all events by collecting them
+  return $ leftmost [ev1, ev2, ev2Failed, ev3, ev4]
+
+test_warning :: Test
+test_warning = TestLabel "delayEvent" $ TestCase $ do
+  let
+    bs = [()]
+    run :: IO [[Maybe ()]]
+    run = runAppSimple warning_network bs
+  _ <- liftIO run
+  return ()
+
+
+
+
 delayEvent_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
@@ -92,6 +123,7 @@ test_stepEvents = TestLabel "stepEvents" $ TestCase $ do
 spec :: Spec
 spec = do
   describe "Potato" $ do
+    fromHUnitTest test_warning
     fromHUnitTest test_stepEvents
     fromHUnitTest test_stepEventsAndCollectOutput
     fromHUnitTest test_sequenceEvents

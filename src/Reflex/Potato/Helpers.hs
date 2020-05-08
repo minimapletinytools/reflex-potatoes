@@ -18,6 +18,7 @@ module Reflex.Potato.Helpers
   , fmapMaybeWarnWith
   , traceEventSimple
   , leftmostwarn
+  , leftmostassert
   , alignEitherWarn
   , foldDynMergeWith
   , foldDynMerge
@@ -114,7 +115,6 @@ fmapMaybeWarnWith sf p ev = r where
 traceEventSimple :: (Reflex t) => String -> Event t a -> Event t a
 traceEventSimple s = traceEventWith (const s)
 
--- TODO rename leftmostWarn
 -- | same as leftmost but outputs a warning if more than one event fires at once
 leftmostwarn :: (Reflex t) => String -> [Event t a] -> Event t a
 leftmostwarn label evs = r where
@@ -124,6 +124,18 @@ leftmostwarn label evs = r where
   warn =
     traceEventWith
         (const ("WARNING: multiple " <> label <> " events triggered"))
+      $ fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
+                  combine
+  r = leftmost [nowarn, warn]
+
+-- | same as leftmost but asserts if more than one event fires at once
+leftmostassert :: (Reflex t) => String -> [Event t a] -> Event t a
+leftmostassert label evs = r where
+  combine = mergeList evs
+  nowarn =
+    fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
+  warn =
+    assertEventWith (const ("ASSERT: multiple " <> label <> " events triggered")) (const False)
       $ fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
                   combine
   r = leftmost [nowarn, warn]

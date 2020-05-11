@@ -20,6 +20,7 @@ module Reflex.Potato.Helpers
   , leftmostwarn
   , leftmostassert
   , alignEitherWarn
+  , alignEitherAssert
   , foldDynMergeWith
   , foldDynMerge
   , fanDSum
@@ -110,8 +111,6 @@ fmapMaybeWarnWith sf p ev = r where
   bad =  fmapMaybe (\(a,x) -> if not a then Just x else Nothing) ev'
   r = leftmost [good, fmapMaybe (const Nothing) $ traceEventWith sf bad]
 
-
-
 traceEventSimple :: (Reflex t) => String -> Event t a -> Event t a
 traceEventSimple s = traceEventWith (const s)
 
@@ -147,6 +146,14 @@ alignEitherWarn
 alignEitherWarn label ev1 ev2 =
   leftmostwarn label [Left <$> ev1, Right <$> ev2]
 
+
+-- | same as align but returns an either and asserts if both events fire at once
+alignEitherAssert :: (Reflex t) => String -> Event t a -> Event t b -> Event t (Either a b)
+alignEitherAssert label = alignEventWithMaybe alignfn where
+  alignfn (This a) = Just $ Left a
+  alignfn (That b) = Just $ Right b
+  alignfn _        = error $ "both events fired when aligning " <> label
+
 foldDynMergeWith
   :: (Reflex t, MonadHold t m, MonadFix m)
   => b -- ^ initial value of dynamic
@@ -177,7 +184,6 @@ selectRest :: [a] -> Maybe [a]
 selectRest []       = Nothing
 selectRest (_ : []) = Nothing
 selectRest (_ : xs) = Just xs
-
 
 -- | delays an event by 1 tick
 delayEvent

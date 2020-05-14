@@ -18,6 +18,29 @@ import           Reflex.Potato.Helpers
 
 import           Reflex.Test.Host
 
+simultaneous_network
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t () -> PerformEventT t m (Event t ((),())))
+simultaneous_network ev = mdo
+  delayedEv <- delayEvent ev
+  let
+    -- this will fire on first tick
+    ev1 = simultaneous ev ev
+    -- this will never fire
+    ev2 = simultaneous ev delayedEv
+  return $ leftmost $ [ev1, ev2]
+
+test_simultaneous :: Test
+test_simultaneous = TestLabel "simultaneous" $ TestCase $ do
+  let
+    bs = [()] :: [()]
+    run :: IO [[Maybe ((),())]]
+    run = runAppSimple simultaneous_network bs
+  v <- liftIO run
+  v @?= [[Just ((),()), Nothing]]
+
+
 warning_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
@@ -59,9 +82,6 @@ test_warning = TestLabel "delayEvent" $ TestCase $ do
     run = runAppSimple warning_network bs
   _ <- liftIO run
   return ()
-
-
-
 
 delayEvent_network
   :: forall t m
@@ -163,3 +183,4 @@ spec = do
     fromHUnitTest test_stepEventsAndSequenceCollectOutput
     fromHUnitTest test_sequenceEvents
     fromHUnitTest test_delayEvent
+    fromHUnitTest test_simultaneous

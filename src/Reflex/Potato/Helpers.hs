@@ -12,6 +12,7 @@ module Reflex.Potato.Helpers
 
 
   -- reflex helpers
+  , simultaneous
   , assertEvent
   , assertEventWith
   , fmapMaybeWarn
@@ -44,6 +45,14 @@ import qualified Data.Dependent.Map as DM
 import qualified Data.Dependent.Sum as DS
 import           Data.These
 
+-- | fires only when both events fire
+simultaneous :: (Reflex t) => Event t a -> Event t b -> Event t (a,b)
+simultaneous eva evb = alignEventWithMaybe
+  (\case
+    These a b -> Just (a,b)
+    _ -> Nothing)
+  eva
+  evb
 
 dsum_to_dmap :: DM.GCompare k => DS.DSum k f -> DM.DMap k f
 dsum_to_dmap ds = DM.fromList [ds]

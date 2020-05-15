@@ -18,10 +18,10 @@ module Reflex.Potato.Helpers
   , fmapMaybeWarn
   , fmapMaybeWarnWith
   , traceEventSimple
-  , leftmostwarn
-  , leftmostassert
-  , alignEitherWarn
-  , alignEitherAssert
+  , leftmostWarn
+  , leftmostAssert
+  , alignWarn
+  , alignAssert
   , foldDynMergeWith
   , foldDynMerge
   , fanDSum
@@ -124,8 +124,8 @@ traceEventSimple :: (Reflex t) => String -> Event t a -> Event t a
 traceEventSimple s = traceEventWith (const s)
 
 -- | same as leftmost but outputs a warning if more than one event fires at once
-leftmostwarn :: (Reflex t) => String -> [Event t a] -> Event t a
-leftmostwarn label evs = r where
+leftmostWarn :: (Reflex t) => String -> [Event t a] -> Event t a
+leftmostWarn label evs = r where
   combine = mergeList evs
   nowarn =
     fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
@@ -137,8 +137,8 @@ leftmostwarn label evs = r where
   r = leftmost [nowarn, warn]
 
 -- | same as leftmost but asserts if more than one event fires at once
-leftmostassert :: (Reflex t) => String -> [Event t a] -> Event t a
-leftmostassert label evs = r where
+leftmostAssert :: (Reflex t) => String -> [Event t a] -> Event t a
+leftmostAssert label evs = r where
   combine = mergeList evs
   nowarn =
     fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
@@ -148,17 +148,19 @@ leftmostassert label evs = r where
                   combine
   r = leftmost [nowarn, warn]
 
+
+
 -- | same as align but only returns left event if both events fire
 -- prints a warning if both events fire
-alignEitherWarn
+alignWarn
   :: (Reflex t) => String -> Event t a -> Event t b -> Event t (Either a b)
-alignEitherWarn label ev1 ev2 =
-  leftmostwarn label [Left <$> ev1, Right <$> ev2]
+alignWarn label ev1 ev2 =
+  leftmostWarn label [Left <$> ev1, Right <$> ev2]
 
 
 -- | same as align but returns an either and asserts if both events fire at once
-alignEitherAssert :: (Reflex t) => String -> Event t a -> Event t b -> Event t (Either a b)
-alignEitherAssert label = alignEventWithMaybe alignfn where
+alignAssert :: (Reflex t) => String -> Event t a -> Event t b -> Event t (Either a b)
+alignAssert label = alignEventWithMaybe alignfn where
   alignfn (This a) = Just $ Left a
   alignfn (That b) = Just $ Right b
   alignfn _        = error $ "both events fired when aligning " <> label

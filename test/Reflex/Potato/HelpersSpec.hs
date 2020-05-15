@@ -18,6 +18,9 @@ import           Reflex.Potato.Helpers
 
 import           Reflex.Test.Host
 
+
+
+
 simultaneous_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
@@ -48,8 +51,8 @@ warning_network
 warning_network ev = do
 
   let
-    -- ensure leftmostwarn gives a warning
-    ev1 = leftmostwarn "expected" [ev, ev]
+    -- ensure leftmostWarn gives a warning
+    ev1 = leftmostWarn "expected" [ev, ev]
 
     -- ensure fmapMaybeWarn/With gives a warning
     ev2 = fmapMaybeWarn "expected" (const False) ev
@@ -89,7 +92,7 @@ delayEvent_network
   => (Event t Int -> PerformEventT t m (Event t Int))
 delayEvent_network ev = mdo
   delayedEv <- delayEvent ev
-  return $ leftmostwarn "delayEvent" [ev, delayedEv]
+  return $ leftmostWarn "delayEvent" [ev, delayedEv]
 
 test_delayEvent :: Test
 test_delayEvent = TestLabel "delayEvent" $ TestCase $ do
@@ -110,7 +113,7 @@ sequenceEvents_network ev = mdo
   let fstEv = fmap fst ev
       sndEv = fmap snd ev
   delayedSndEv <- sequenceEvents fstEv sndEv
-  return $ leftmostwarn "sequenceEvents" [fstEv, delayedSndEv]
+  return $ leftmostWarn "sequenceEvents" [fstEv, delayedSndEv]
 
 test_sequenceEvents :: Test
 test_sequenceEvents = TestLabel "sequenceEvents" $ TestCase $ do

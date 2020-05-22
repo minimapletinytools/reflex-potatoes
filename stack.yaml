@@ -50,7 +50,7 @@ extra-deps:
 - ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
 - witherable-0.3.1@sha256:ed3d5bc9eb1c08fa9704d9e143cdf622e1bd80b847cd5ede8c07da7bc7981ab9,1313
 - github: pdlla/reflex-test-host
-  commit: 73de55fbd7cb67b73af8f5d4370b1f653e7e9652
+  commit: 5176714e81bd05428b69755b337e1947faa43c8b
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

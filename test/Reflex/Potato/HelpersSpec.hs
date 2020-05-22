@@ -20,11 +20,30 @@ import           Reflex.Test.Host
 
 
 
+switchtest_network
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t Int -> TestGuestT t m (Event t Int))
+switchtest_network ev = mdo
+  let
+    ev1 = fmapMaybe (\x -> if x == 1 then Just 1 else Nothing) ev
+  outEvDyn <- foldDyn (\x _ -> if x == 1 then ev1 else (ev $> 0)) ev ev
+  return $ switchPromptlyDyn outEvDyn
+
+test_switchtest :: Test
+test_switchtest = TestLabel "switchtest" $ TestCase $ do
+  let
+    bs = [0,1] :: [Int]
+    run :: IO [[Maybe Int]]
+    run = runAppSimple switchtest_network bs
+  v <- liftIO run
+  print v
+
 
 simultaneous_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t () -> PerformEventT t m (Event t ((),())))
+  => (Event t () -> TestGuestT t m (Event t ((),())))
 simultaneous_network ev = mdo
   delayedEv <- delayEvent ev
   let
@@ -47,7 +66,7 @@ test_simultaneous = TestLabel "simultaneous" $ TestCase $ do
 warning_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t ()) -> PerformEventT t m (Event t ())
+  => (Event t ()) -> TestGuestT t m (Event t ())
 warning_network ev = do
 
   let
@@ -89,7 +108,7 @@ test_warning = TestLabel "delayEvent" $ TestCase $ do
 delayEvent_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t Int -> PerformEventT t m (Event t Int))
+  => (Event t Int -> TestGuestT t m (Event t Int))
 delayEvent_network ev = mdo
   delayedEv <- delayEvent ev
   return $ leftmostWarn "delayEvent" [ev, delayedEv]
@@ -108,7 +127,7 @@ test_delayEvent = TestLabel "delayEvent" $ TestCase $ do
 sequenceEvents_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t (Int, Int) -> PerformEventT t m (Event t Int))
+  => (Event t (Int, Int) -> TestGuestT t m (Event t Int))
 sequenceEvents_network ev = mdo
   let fstEv = fmap fst ev
       sndEv = fmap snd ev
@@ -128,7 +147,7 @@ test_sequenceEvents = TestLabel "sequenceEvents" $ TestCase $ do
 stepEventsAndSequenceCollectOutput_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t [Int] -> PerformEventT t m (Event t [Int]))
+  => (Event t [Int] -> TestGuestT t m (Event t [Int]))
 stepEventsAndSequenceCollectOutput_network ev = mdo
   (repeated, collected) <- stepEventsAndCollectOutput ev repeated
   return collected
@@ -147,7 +166,7 @@ test_stepEventsAndSequenceCollectOutput =
 stepEventsAndCollectOutput_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t [Int] -> PerformEventT t m (Event t [Int]))
+  => (Event t [Int] -> TestGuestT t m (Event t [Int]))
 stepEventsAndCollectOutput_network ev = mdo
   (repeated, collected) <- stepEventsAndCollectOutput ev repeated
   return collected
@@ -164,7 +183,7 @@ test_stepEventsAndCollectOutput =
 stepEvents_network
   :: forall t m
    . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
-  => (Event t [Int] -> PerformEventT t m (Event t Int))
+  => (Event t [Int] -> TestGuestT t m (Event t Int))
 stepEvents_network = stepEvents
 
 test_stepEvents :: Test

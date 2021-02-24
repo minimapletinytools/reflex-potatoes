@@ -25,6 +25,7 @@ module Reflex.Potato.Helpers
   , foldDynMergeWith
   , foldDynMerge
   , fanDSum
+  , pushAlwaysDyn
 
   , delayEvent
   , sequenceEvents
@@ -186,6 +187,16 @@ fanDSum
   => Event t (DS.DSum k Identity)
   -> EventSelector t k
 fanDSum ds = fan $ DM.fromAscList . (: []) <$> ds
+
+-- TODO test
+pushAlwaysDyn
+  :: (Reflex t, MonadHold t m, MonadFix m)
+  => (a -> PushM t b)
+  -> Dynamic t a
+  -> m (Dynamic t b)
+pushAlwaysDyn f da = do
+  da0 <- sample . current $ da
+  buildDynamic (f da0) $ pushAlways f (updated da)
 
 
 selectNext :: [a] -> Maybe a

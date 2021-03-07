@@ -20,6 +20,7 @@ module Reflex.Potato.Helpers
   , traceEventSimple
   , leftmostWarn
   , leftmostAssert
+  , leftmostWarnWithIndex
   , alignWarn
   , alignAssert
   , foldDynMergeWith
@@ -148,6 +149,20 @@ leftmostAssert label evs = r where
       $ fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
                   combine
   r = leftmost [nowarn, warn]
+
+-- | same as leftmostWarn but also adds an index for debugging
+leftmostWarnWithIndex :: (Reflex t) => String -> [Event t a] -> Event t a
+leftmostWarnWithIndex label evs = r where
+  evsWithIndex = zipWith (\i -> fmap (i,)) [0..] evs
+  combine = mergeList evsWithIndex
+  nowarn =
+    fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
+  warn =
+    traceEventWith
+        (const ("WARNING: multiple " <> label <> " events triggered"))
+      $ fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
+                  combine
+  r = fmap snd $ leftmost [nowarn, warn]
 
 
 

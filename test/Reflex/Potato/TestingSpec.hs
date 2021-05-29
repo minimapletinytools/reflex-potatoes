@@ -11,10 +11,7 @@ import           Test.Hspec
 import           Test.Hspec.Contrib.HUnit (fromHUnitTest)
 import           Test.HUnit
 
-import qualified Data.List                as L (last)
-
 import           Reflex
-import           Reflex.Potato.Helpers
 
 import           Reflex.Test.Host
 

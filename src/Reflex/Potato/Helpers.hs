@@ -45,6 +45,7 @@ import           Control.Monad.Fix
 
 import qualified Data.Dependent.Map as DM
 import qualified Data.Dependent.Sum as DS
+import qualified Data.GADT.Compare as DM
 import           Data.These
 
 -- | fires only when both events fire

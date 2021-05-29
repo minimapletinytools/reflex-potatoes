@@ -206,3 +206,4 @@ spec = do
     fromHUnitTest test_sequenceEvents
     fromHUnitTest test_delayEvent
     fromHUnitTest test_simultaneous
+    fromHUnitTest test_switchtest

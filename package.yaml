@@ -66,11 +66,12 @@ default-extensions:
 
 dependencies:
 - base >= 4.7 && < 5
-- reflex
+- reflex >= 0.7 && < 0.9
 - relude
 - ref-tf
 - dependent-sum
 - dependent-map
+- some
 - these
 - reflex-test-host
 - text

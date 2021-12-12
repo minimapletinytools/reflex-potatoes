@@ -158,11 +158,10 @@ leftmostWarnWithIndex label evs = r where
   combine = mergeList evsWithIndex
   nowarn =
     fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
-  warn =
-    traceEventWith
-        (const ("WARNING: multiple " <> label <> " events triggered"))
-      $ fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
-                  combine
+  warn = fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
+      $ traceEventWith (\xs -> "WARNING: multiple " <> label <> " events triggered" <> show (fmap fst xs))
+      $ fmapMaybe (\x -> if length x > 1 then Just x else Nothing)
+      combine
   r = fmap snd $ leftmost [nowarn, warn]
 
 

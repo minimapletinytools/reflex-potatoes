@@ -21,6 +21,7 @@ module Reflex.Potato.Helpers
   , leftmostWarn
   , leftmostAssert
   , leftmostWarnWithIndex
+  , leftmostWarnWithEverything
   , alignWarn
   , alignAssert
   , foldDynMergeWith
@@ -159,11 +160,23 @@ leftmostWarnWithIndex label evs = r where
   nowarn =
     fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
   warn = fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
-      $ traceEventWith (\xs -> "WARNING: multiple " <> label <> " events triggered" <> show (fmap fst xs))
+      $ traceEventWith (\xs -> "WARNING: multiple " <> label <> " events triggered: " <> show (fmap fst xs))
       $ fmapMaybe (\x -> if length x > 1 then Just x else Nothing)
       combine
   r = fmap snd $ leftmost [nowarn, warn]
 
+-- | same as leftmostWarn but rpint everything
+leftmostWarnWithEverything :: (Reflex t, Show a) => String -> [Event t a] -> Event t a
+leftmostWarnWithEverything label evs = r where
+  evsWithIndex = zipWith (\i -> fmap (i,)) [0..] evs
+  combine = mergeList evsWithIndex
+  nowarn =
+    fmapMaybe (\x -> if length x == 1 then Just (head x) else Nothing) combine
+  warn = fmapMaybe (\x -> if length x > 1 then Just (head x) else Nothing)
+      $ traceEventWith (\xs -> "WARNING: multiple " <> label <> " events triggered: " <> show xs)
+      $ fmapMaybe (\x -> if length x > 1 then Just x else Nothing)
+      combine
+  r = fmap snd $ leftmost [nowarn, warn]
 
 
 -- | same as align but only returns left event if both events fire

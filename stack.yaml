@@ -49,8 +49,7 @@ extra-deps:
 - monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
 - ref-tf-0.4.0.2@sha256:69de3550250e0cd69f45d080359cb314a9487c915024349c75b78732bbee9332,1134
 - witherable-0.3.1@sha256:ed3d5bc9eb1c08fa9704d9e143cdf622e1bd80b847cd5ede8c07da7bc7981ab9,1313
-- github: pdlla/reflex-test-host
-  commit: 5f367c2e720cdd588e1dffa34cd8223c310f5f43
+- ../reflex-test-host
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

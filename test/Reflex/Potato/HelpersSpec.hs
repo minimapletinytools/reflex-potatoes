@@ -12,11 +12,12 @@ import           Test.Hspec.Contrib.HUnit (fromHUnitTest)
 import           Test.HUnit
 
 import qualified Data.List                as L (last)
+import Data.These
 
 import           Reflex
 import           Reflex.Potato.Helpers
-
 import           Reflex.Test.Host
+
 
 
 
@@ -196,6 +197,37 @@ test_stepEvents = TestLabel "stepEvents" $ TestCase $ do
   return ()
   L.last v @?= [Just 1, Just 2]
 
+
+
+-- TODO move to Data.These.Extra somewhere
+maybeThis :: These a b -> Maybe a
+maybeThis (This a)    = Just a
+maybeThis (These a _) = Just a
+maybeThis _           = Nothing
+
+maybeThat :: These a b -> Maybe b
+maybeThat (That b)    = Just b
+maybeThat (These _ b) = Just b
+maybeThat _           = Nothing
+
+waitForSecondAfterFirst_network 
+  :: forall t m
+   . (t ~ SpiderTimeline Global, m ~ SpiderHost Global)
+  => (Event t (These Int Int) -> TestGuestT t m (Event t (Int, Int)))
+waitForSecondAfterFirst_network ev = 
+  waitForSecondAfterFirst (fmapMaybe maybeThis ev) (fmapMaybe maybeThat ev)
+
+test_waitForSecondAfterFirst :: Test
+test_waitForSecondAfterFirst = TestLabel "waitForSecondAfterFirst" $ TestCase $ do
+  let bs = [This 1, This 2, That 3, That 4, This 5, These 6 7] :: [These Int Int]
+      run :: IO [[Maybe (Int, Int)]]
+      run = runAppSimple waitForSecondAfterFirst_network bs
+  v <- liftIO run
+  print v
+  return ()
+  v @?= [[Nothing], [Nothing], [Just (2,3)], [Nothing], [Nothing], [Just (6, 7)]]
+
+
 spec :: Spec
 spec = do
   describe "Potato" $ do
@@ -207,3 +239,4 @@ spec = do
     fromHUnitTest test_delayEvent
     fromHUnitTest test_simultaneous
     fromHUnitTest test_switchtest
+    fromHUnitTest test_waitForSecondAfterFirst

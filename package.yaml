@@ -75,6 +75,7 @@ dependencies:
 - these
 - reflex-test-host
 - text
+- semialign
 
 library:
   source-dirs: src

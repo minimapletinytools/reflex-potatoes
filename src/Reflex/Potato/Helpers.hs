@@ -34,6 +34,11 @@ module Reflex.Potato.Helpers
   , stepEvents
   , stepEventsAndCollectOutput
   , stepEventsAndSequenceCollectOutput
+
+  , switchHoldPair
+  , switchHoldTriple
+
+  , waitForSecondAfterFirst
   )
 where
 
@@ -44,9 +49,10 @@ import           Reflex
 
 import           Control.Monad.Fix
 
+import           Data.Align
 import qualified Data.Dependent.Map as DM
 import qualified Data.Dependent.Sum as DS
-import qualified Data.GADT.Compare as DM
+import qualified Data.GADT.Compare  as DM
 import           Data.These
 
 -- | fires only when both events fire
@@ -387,3 +393,38 @@ stepEventsAndSequenceCollectOutput evin collectEv = mdo
 
   (_, rev) <- runWithReplace (return ()) (return <$> rest)
   return (next, collected)
+
+
+
+switchHoldPair :: (Reflex t, MonadHold t m) => Event t a -> Event t b -> Event t (Event t a, Event t b) -> m (Event t a, Event t b)
+switchHoldPair eva evb evin = fmap fanThese $ switchHold (align eva evb) $ fmap (uncurry align) evin
+
+switchHoldTriple :: forall t m a b c. (Reflex t, MonadHold t m) => Event t a -> Event t b -> Event t c -> Event t (Event t a, Event t b, Event t c) -> m (Event t a, Event t b, Event t c)
+switchHoldTriple eva evb evc evin = r where
+  evinAligned :: Event t (Event t (These a (These b c)))
+  evinAligned = fmap (\(eva', evb', evc') -> align eva' (align evb' evc')) evin
+  evabc = align eva (align evb evc)
+  switched :: m (Event t (These a (These b c)))
+  switched = switchHold evabc evinAligned
+  fanned1 :: m (Event t a, Event t (These b c))
+  fanned1 = fmap fanThese switched
+  fanned2 = fmap (\(a,bc) -> (a, fanThese bc)) fanned1
+  r = fmap (\(a, (b,c)) -> (a,b,c)) fanned2
+
+
+-- | produces an event that will fire when the following sequence of conditions happens or happens simultaneously
+-- evA fires
+-- evB fires
+-- 
+-- the state is reset after this event fires and the sequence must occur again for the event to fire again
+waitForSecondAfterFirst :: (Reflex t, MonadFix m, MonadHold t m) => Event t a -> Event t b -> m (Event t (a, b))
+waitForSecondAfterFirst eva evb = mdo
+  -- reset state of a firing each time b fires after a fires or at the same time
+  aDyn <- holdDyn Nothing $ leftmost [evabsimul $> Nothing, fmap Just eva, evb $> Nothing]
+  let 
+    -- always fire if both events fire at the same time
+    evabsimul = simultaneous eva evb 
+    -- only fire when b fires if a fired before
+    evbaftera = fmapMaybe (\(ma,b) -> maybe Nothing (Just . (,b)) ma) (attach (current aDyn) evb)
+  return $ leftmost [evabsimul, evbaftera]
+

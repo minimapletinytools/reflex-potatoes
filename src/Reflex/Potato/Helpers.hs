@@ -271,7 +271,7 @@ sequenceEvents ev1 ev2 = mdo
         -- if ev1 does not trigger, delay does not trigger and this gives ev2
         -- if ev1 did trigger, and ev2 did not, this gives ev2
         -- if ev1 and ev2 both triggered, this gives previous value of evl2
-        -- * note that it's possible for ev1 or ev2 to trigger in the second frame for outside reasons
+        -- note that it's possible for ev1 or ev2 to trigger in the second frame for outside reasons
         -- if this is the case, you really should not use this function
         return $ leftmost [delayed, difference ev2 ev1]
   (ev2Delayed, redo) <- runWithReplace

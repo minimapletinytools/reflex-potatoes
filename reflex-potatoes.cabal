@@ -71,7 +71,7 @@ library
     , dependent-sum
     , ref-tf
     , reflex >= 0.7 && <1
-    , reflex-test-host
+    , reflex-test-host >=0.1.2
     , relude
     , semialign
     , some
@@ -132,9 +132,9 @@ test-suite reflex-potatoes-test
     , hspec
     , hspec-contrib
     , ref-tf
-    , reflex >=0.7 && <0.9
+    , reflex >=0.7 && <1
     , reflex-potatoes
-    , reflex-test-host
+    , reflex-test-host >=0.1.2
     , relude
     , semialign
     , some

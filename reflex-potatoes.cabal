@@ -26,8 +26,6 @@ source-repository head
 library
   exposed-modules:
       Reflex.Potato.Helpers
-  other-modules:
-      Paths_reflex_potatoes
   hs-source-dirs:
       src
   default-extensions:
@@ -72,7 +70,7 @@ library
     , dependent-map
     , dependent-sum
     , ref-tf
-    , reflex >=0.7 && <0.9
+    , reflex >= 0.7 && <1
     , reflex-test-host
     , relude
     , semialign
@@ -87,7 +85,6 @@ test-suite reflex-potatoes-test
   other-modules:
       Reflex.Potato.HelpersSpec
       Reflex.Potato.TestingSpec
-      Paths_reflex_potatoes
   hs-source-dirs:
       test
   default-extensions:
